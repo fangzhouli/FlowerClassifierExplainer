@@ -53,7 +53,7 @@ class AnimalsClassifierDataGenerator(tf.keras.utils.Sequence):
         self._on_epoch_end()
 
     def __len__(self):
-        return len(self.data_files) // len(self.batch_size)
+        return len(self.data_files) // self.batch_size
 
     def __getitem__(self, index):
         indices = self._indices[index * self.batch_size:(index + 1)
@@ -61,7 +61,6 @@ class AnimalsClassifierDataGenerator(tf.keras.utils.Sequence):
         files = [self.data_files[i] for i in indices]
         labels = [self.labels[i] for i in indices]
         X, y = self._generate_data(files, labels)
-        print(y)
         return X, y
 
     def _on_epoch_end(self):
@@ -72,11 +71,8 @@ class AnimalsClassifierDataGenerator(tf.keras.utils.Sequence):
     def _generate_data(self, files, labels):
         X = np.empty(
             (self.batch_size, self.img_size, self.img_size, self.n_channels),
-            dtype=np.uint8)
+            dtype=np.float32)
         for i in range(len(files)):
-            # cv2.imshow('image', center(cv2.imread(files[i])))
-            # cv2.waitKey(0)
-            # cv2.destroyAllWindows()
             X[i] = center(cv2.imread(files[i]))
         return X, tf.keras.utils.to_categorical(labels, self.n_classes)
 
