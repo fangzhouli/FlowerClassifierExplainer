@@ -25,13 +25,15 @@ Authors:
     Fangzhou Li - https://github.com/fangzhouli
 
 Todo:
-    * For module TODOs
-    * You have to also use ``sphinx.ext.todo`` extension
+    * load_data comments
+    * file docstring
 
 """
-
+from os import listdir, path
 import cv2
 import numpy as np
+
+PATH_DATA = path.abspath(path.dirname(__file__)) + '/../data/raw-img'
 
 
 def center(img, size=200):
@@ -60,3 +62,45 @@ def center(img, size=200):
                  col:(col + img_resized.shape[1])] = img_resized
     return img_centered[len_margin:len_margin + size,
                         len_margin:len_margin + size]
+
+
+def load_files(classes, n_samples, seed=None):
+    """Load an amount of image data from specified classes.
+
+    Args:
+        seed (int or None): A random generator seed. If None, then it is a
+            'true' randomness. If -1, then it picks the first n_samples data.
+
+    Returns:
+        (dict): Each key is a class, and each value is a list of data
+            filenames.
+
+    """
+    translate = {
+        "dog": "cane",
+        "horse": "cavallo",
+        "elephant": "elefante",
+        "butterfly": "farfalla",
+        "chicken": "gallina",
+        "cat": "gatto",
+        "cow": "mucca",
+        "sheep": "pecora",
+        "spider": "ragno",
+        "squirrel": "scoiattolo"
+    }
+    for class_ in set(classes):
+        if class_ not in translate.keys():
+            raise ValueError("Classes contain invalid name.")
+
+    files = {}
+
+    for class_ in set(classes):
+        class_it = translate[class_]
+
+        if seed is None:
+            pass
+        elif seed == -1:
+            files_class = sorted(listdir(PATH_DATA + '/' + class_it))
+            files[class_] = [path.join(PATH_DATA, class_it, img_file)
+                             for img_file in files_class[:n_samples]]
+    return files

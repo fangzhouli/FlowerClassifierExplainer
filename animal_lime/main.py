@@ -1,86 +1,91 @@
-# -*- encoding: utf-8 -*-
+# -*- coding: utf-8 -*-
+"""A one line summary of the module or program, terminated by a period.
+
+This module demonstrates documentation as specified by the `Google Python
+Style Guide`_. Docstrings may extend over multiple lines. Sections are created
+with a section header and a colon followed by a block of indented text.
+
+Example:
+    Examples can be given using either the ``Example`` or ``Examples``
+    sections. Sections support any reStructuredText formatting, including
+    literal blocks::
+
+        $ python example_google.py
+
+Attributes:
+    attribute_1 (int): Module level variables may be documented in
+        either the ``Attributes`` section of the module docstring, or in an
+        inline docstring immediately following the variable.
+
+        Either form is acceptable, but the two should not be mixed. Choose
+        one convention to document module level variables and be consistent
+        with it.
+
+Authors:
+    Fangzhou Li - https://github.com/fangzhouli
+
+Todo:
+    * For module TODOs
+    * You have to also use ``sphinx.ext.todo`` extension
+
 """
-"""
 
-from os import path, listdir
-import cv2
-import numpy as np
-from tensorflow.keras import layers, models
-import tensorflow as tf
-
-DATA_PATH = path.abspath(path.dirname(__name__)) + '/data/raw-img'
+import argparse
+import sys
+import textwrap
+from animal_lime.models import train
 
 
-class BinaryModel(tf.keras.Model):
-    """
+def parse_args(args):
     """
 
-    def __init__(self):
-        super().__init__()
-        self.conv2D = layers.Conv2D(4, (3, 3), activation='relu')
-        self.max_pool = layers.MaxPooling2D((2, 2))
-        self.flat = layers.Flatten()
-        self.dense_1 = layers.Dense(8)
-        self.dense_2 = layers.Dense(2)
-
-    def call(self, inputs):
-        x = self.conv2D(inputs)
-        x = self.max_pool(x)
-        x = self.flat(x)
-        x = self.dense_1(x)
-        return self.dense_2(x)
+    """
+    parser = argparse.ArgumentParser(
+        description="Train a animal image classification model")
+    parser.add_argument(
+        '--epochs', '-E',
+        nargs=1,
+        type=int,
+        default=10,
+        help="")
+    parser.add_argument(
+        '--classes', '-C',
+        nargs=1,
+        type=str,
+        default='dog,cat',
+        help="")
+    parser.add_argument(
+        '--n', '-N',
+        nargs=1,
+        type=int,
+        default=1000,
+        help="")
+    parser.add_argument(
+        '--size', '-S',
+        nargs=1,
+        type=int,
+        default=200,
+        help="")
+    parser.add_argument(
+        '--log-level', '-L',
+        choices=[10, 20, 30, 40, 50],
+        default=10,
+        type=int,
+        help=textwrap.dedent("""\
+        The specified log level:
+        - 50: CRITICAL
+        - 40: ERROR
+        - 30: WARNING
+        - 20: INFO
+        - 10: DEBUG"""))
+    return parser.parse_args(args)
 
 
 if __name__ == '__main__':
-    """
-    """
-    # preprocess
-    n_samples = 1000
-    res_height = 200
-    res_width = 200
-    train_ratio = 0.7
+    args = parse_args(sys.argv[1:])
 
-    data_cat_path = DATA_PATH + '/gatto'
-    data_dog_path = DATA_PATH + '/cane'
-    data_cat_files = listdir(data_cat_path)
-    data_dog_files = listdir(data_dog_path)
-
-    img_cat = [cv2.imread(data_cat_path + '/' + file)
-               for file in data_cat_files[:n_samples]]
-    img_dog = [cv2.imread(data_dog_path + '/' + file)
-               for file in data_dog_files[:n_samples]]
-
-    img_cat_resized = [cv2.resize(
-        img, (res_height, res_width), interpolation=cv2.INTER_LINEAR)
-        for img in img_cat]
-    img_dog_resized = [cv2.resize(
-        img, (res_height, res_width), interpolation=cv2.INTER_LINEAR)
-        for img in img_dog]
-
-    n_train = int(n_samples * train_ratio)
-    X_train = np.asarray(img_cat_resized[:n_train] + img_dog_resized[:n_train]) / 255
-    y_train = np.asarray([1] * n_train + [0] * n_train)
-    X_test = np.asarray(img_cat_resized[n_train:] + img_dog_resized[n_train:]) / 255
-    y_test = np.asarray([1] * (n_samples - n_train) +
-                        [0] * (n_samples - n_train))
-
-    # Model
-    model = BinaryModel()
-    model.compile(optimizer='adam',
-                  loss=tf.keras.losses.SparseCategoricalCrossentropy(
-                      from_logits=True),
-                  metrics=['accuracy'])
-    model.fit(x=X_train, y=y_train, epochs=10,
-              validation_data=(X_test, y_test))
-
-
-    # model = models.Sequential()
-    # model.add(layers.Conv2D(4, (3, 3), activation='relu',
-    #                         input_shape=(res_height, res_width, 3)))
-    # model.add(layers.MaxPooling2D((2, 2)))
-    # model.add(layers.Conv2D(8, (3, 3), activation='relu'))
-    # model.add(layers.Flatten())
-    # model.add(layers.Dense(64, activation='relu'))
-    # model.add(layers.Dense(2))
-
-    model.save(path.abspath(path.dirname(__name__)) + '/models/test')
+    train(
+        classes=args.classes.split(','),
+        epochs=args.epochs,
+        n_samples=args.n,
+        img_size=args.size)
