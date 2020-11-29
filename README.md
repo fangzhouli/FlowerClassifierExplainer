@@ -1,35 +1,28 @@
-# ECS289G3_DeepLearning
+# ECS289 Deep Learning Project: Investigation of Interpretability of DifferentLocal Explainers for Deep Neural Network
 
-## How to install
+## Introduction
 
-If you have already installed LIME, uninstall it first.
+This project investigates LIME [1], model explanation method, with different explainers. We implemented MyLIME to test the LIME with the logistic regression explainer and the decision tree explainer on the flower classification model. Our experiment result shows that the LIME with tree explainer outperforms the LIME with the linear explainer and the logistic explainer.
 
-Then, perform the installation as below:
+## How to start
+
+### Installation
+
+In order to reproduce the result, you need to git clone two repositories: This repository, and [MyLime](https://github.com/fangzhouli/mylime) repository. After cloning, perform the installation as below:
+```console
+pip install ./ECS289G3_DeepLearning  # This will overwrite original LIME if
+                                     #   you have already installed.
+pip install ./mylime
 ```
-pip install ./animal_lime/mylime
-```
+
+You are welcome to try out different models. If you want to get the exact same outcome as we have, please follow our report.
 
 ## How to use
 
-```python
-explainer = lime_image.LimeImageExplainer()
-explanation = explainer.explain_instance(
-    img,  # A M-by-N-by-3 array.
-    model.predict,  # A classifier function
-    model_regressor='logistic',
-    top_labels=1,
-    hide_color=0,
-    num_samples=500)
-
-print("The prediction: {}".format(class_names[explanation.top_labels[0]]))
-temp, mask = explanation.get_image_and_mask(
-    explanation.top_labels[0],
-    positive_only=True,
-    num_features=20,
-    hide_rest=True)
-plt.figure()
-plt.imshow(img)
-plt.figure()
-plt.imshow(mark_boundaries(temp, mask))
-plt.show()
+```console
+python cnn_model_training.py  # Purposely generate a bad model.
+python generate_figures.py
 ```
+## References
+
+- [1] Marco Tulio Ribeiro, et al. 2016. "Why Should I Trust You?": Explaining the Predictions of Any Classifier.
