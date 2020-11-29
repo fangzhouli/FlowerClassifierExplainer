@@ -11,8 +11,8 @@ with open('README.md', 'r') as f:
     long_description = f.read()
 
 setup(
-    name='animal-lime',
-    version='1.0.0',
+    name='flower-lime',
+    version='0.1.0',
     description='',
     long_description=long_description,
     long_description_content_type='text/markdown',
