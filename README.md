@@ -20,6 +20,7 @@ You are welcome to try out different models. If you want to get the exact same o
 ## How to use
 
 ```console
+cd flower_lime
 python cnn_model_training.py  # Purposely generate a bad model.
 python generate_figures.py
 ```
