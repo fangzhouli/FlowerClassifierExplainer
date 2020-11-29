@@ -23,6 +23,7 @@ Attributes:
 
 Authors:
     Fangzhou Li - https://github.com/fangzhouli
+    Chengyang Wang - https://github.com/cyywang-git
 
 Todo:
     * For module TODOs
@@ -30,142 +31,194 @@ Todo:
 
 """
 
-from sklearn.model_selection import train_test_split
+import os
+import PIL
+
+# Import Necessary Modules: Tensorflow, Matplotlib, Numpy, Pathlib
 import tensorflow as tf
-from animal_lime.utils.image import load_files
-from animal_lime.models._base import AnimalsClassifierDataGenerator
-from animal_lime.models.tiny_2 import BinarySmallModel
+from tensorflow import keras
+from tensorflow.keras import layers
+from tensorflow.keras.models import Sequential
+import matplotlib.pyplot as plt
+import numpy as np
+import pathlib
 
-# from lime import lime_image
-# from skimage.segmentation import mark_boundaries
-# import matplotlib.pyplot as plt
+# Download the flower dataset from the tensorflow tutorial
+dataset_url = "https://storage.googleapis.com/download.tensorflow.org/"\
+              "example_images/flower_photos.tgz"
+data_dir = tf.keras.utils.get_file(
+    'flower_photos', origin=dataset_url, untar=True)
+data_dir = pathlib.Path(data_dir)
+
+# Set the basic parameters
+batch_size = 32
+img_height = 180
+img_width = 180
+
+# Divide training and validation sets
+train_ds = tf.keras.preprocessing.image_dataset_from_directory(
+    data_dir,
+    validation_split=0.2,
+    subset="training",
+    seed=123,
+    image_size=(img_height, img_width),
+    batch_size=batch_size)
+
+val_ds = tf.keras.preprocessing.image_dataset_from_directory(
+    data_dir,
+    validation_split=0.2,
+    subset="validation",
+    seed=123,
+    image_size=(img_height, img_width),
+    batch_size=batch_size)
+
+# Print class
+class_names = train_ds.class_names
+print(class_names)
+
+# Plot images of flowers
+plt.figure(figsize=(10, 10))
+for images, labels in train_ds.take(1):
+    for i in range(9):
+        ax = plt.subplot(3, 3, i + 1)
+        plt.imshow(images[i].numpy().astype("uint8"))
+        plt.title(class_names[labels[i]])
+        plt.axis("off")
+
+# Set the training parameters
+AUTOTUNE = tf.data.experimental.AUTOTUNE
+
+train_ds = train_ds.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
+val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
+
+num_classes = 5
+
+# Define the augmentation layer
+data_augmentation = keras.Sequential(
+    [
+        layers.experimental.preprocessing.RandomFlip("horizontal",
+                                                     input_shape=(img_height,
+                                                                  img_width,
+                                                                  3)),
+        layers.experimental.preprocessing.RandomRotation(0.1),
+        layers.experimental.preprocessing.RandomZoom(0.1),
+    ]
+)
+
+# Define the network layers
+model = Sequential([
+    data_augmentation,
+    layers.experimental.preprocessing.Rescaling(1. / 255),
+    layers.Conv2D(16, 3, padding='same', activation='relu'),
+    layers.MaxPooling2D(),
+    layers.Conv2D(32, 3, padding='same', activation='relu'),
+    layers.MaxPooling2D(),
+    layers.Conv2D(64, 3, padding='same', activation='relu'),
+    layers.MaxPooling2D(),
+    layers.Dropout(0.2),
+    layers.Flatten(),
+    layers.Dense(128, activation='relu'),
+    layers.Dense(num_classes)
+])
+
+model.compile(optimizer='adam',
+              loss=tf.keras.losses.SparseCategoricalCrossentropy(
+                  from_logits=True),
+              metrics=['accuracy'])
+
+model.summary()
+
+# Training
+epochs = 15
+history = model.fit(
+    train_ds,
+    validation_data=val_ds,
+    epochs=epochs
+)
+
+acc = history.history['accuracy']
+val_acc = history.history['val_accuracy']
+
+loss = history.history['loss']
+val_loss = history.history['val_loss']
+
+epochs_range = range(epochs)
+
+plt.figure(figsize=(8, 8))
+plt.subplot(1, 2, 1)
+plt.plot(epochs_range, acc, label='Training Accuracy')
+plt.plot(epochs_range, val_acc, label='Validation Accuracy')
+plt.legend(loc='lower right')
+plt.title('Training and Validation Accuracy')
+
+plt.subplot(1, 2, 2)
+plt.plot(epochs_range, loss, label='Training Loss')
+plt.plot(epochs_range, val_loss, label='Validation Loss')
+plt.legend(loc='upper right')
+plt.title('Training and Validation Loss')
+plt.show()
+
+#%% Choose an image for interpretation
+
+sunflower_url = "https://storage.googleapis.com/download.tensorflow.org/example_images/592px-Red_sunflower.jpg"
+#sunflower_path = tf.keras.utils.get_file('Red_sunflower', origin=sunflower_url)
+sunflower_path = r"C:\Users\Chengyang Wang\.keras\datasets\flower_photos\sunflowers\6953297_8576bf4ea3.jpg"
+
+img = keras.preprocessing.image.load_img(
+    sunflower_path, target_size=(img_height, img_width)
+)
+img_array = keras.preprocessing.image.img_to_array(img)
+img_array = tf.expand_dims(img_array, 0)  # Create a batch
+
+predictions = model.predict(img_array)
+score = tf.nn.softmax(predictions[0])
+
+print(
+    "This image most likely belongs to {} with a {:.2f} percent confidence."
+    .format(class_names[np.argmax(score)], 100 * np.max(score))
+)
+
+#%% LIME
+from lime import lime_image
+from skimage.segmentation import mark_boundaries
 
 
-def train(classes, epochs, n_samples, img_size, model_name):
-    """Train an animal classifier.
+explainer = lime_image.LimeImageExplainer()
 
-    Args:
-        TODO
+# =============================================================================
+# image = 3dim double numpy array (the sample you want to explain)
+# classifier_fn = predicted model
+# top_labels = labels to be explained
+# hide color = the color for a superpixel turned OFF. Alternatively, if it is NONE, the superpixel will be replaced by the average of its pixels
+# num_features = maximum number of features present in explanation
+# num_samples = size of the neighborhood to learn the linear model
+# =============================================================================
+explanation = explainer.explain_instance(
+    image=img_array[0].numpy().astype("double"),
+    classifier_fn=model.predict,
+    top_labels=1,
+    hide_color=0,
+    num_features=20,
+    num_samples=500)
 
-    Returns:
-        TODO
+#%%
+# =============================================================================
+# label = label we would like to explain
+# positive_only = if TURE, only give positive superpixel; else give negative ones
+# num_features = num of superpixels
+# hide_rest = make the rest superpixel gray
+# =============================================================================
+temp, mask = explanation.get_image_and_mask(
+    explanation.top_labels[0], positive_only=True, num_features=5, hide_rest=False)
+plt.figure()
+plt.imshow(mark_boundaries(temp / (255 * 2) + 0.4, mask))
 
-    """
-    # Label class with one-hot encoded numetical number.
-    label_map = {}
-    for i in range(len(classes)):
-        label_map[classes[i]] = i
+temp, mask = explanation.get_image_and_mask(
+    explanation.top_labels[0], positive_only=False, num_features=10, hide_rest=False)
+plt.figure()
+plt.imshow(mark_boundaries(temp / (255 * 2) + 0.4, mask))
 
-    # Define training and validation datasets.
-    data_files = []
-    labels = []
-    data_files_dict = load_files(classes, n_samples, -1)
-    for class_, files in data_files_dict.items():
-        data_files += files
-        labels += [label_map[class_]] * len(files)
-    data_files_train, data_files_val, labels_train, \
-        labels_val = train_test_split(
-            data_files, labels, test_size=0.1)
-
-    # Train the model.
-    model = BinarySmallModel()
-    data_generator = AnimalsClassifierDataGenerator(
-        data_files=data_files,
-        labels=labels,
-        n_classes=len(classes),
-        img_size=img_size,
-        n_channels=3)
-    model.compile(
-        optimizer='adam',
-        loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True))
-    model.fit(
-        data_generator,
-        epochs=epochs,
-        validation_data=(data_files_val, labels_val))
-    model.save(model_name)
-
-
-train(['dog', 'cat'], 10, 1000, 200, 'tiny_2')
-
-# if __name__ == '__main__':
-#     """
-#     """
-#     training = True
-#     model_name = "binary_small"
-#     img_size = 200
-#     optimizer = 'adam'
-#     metrics = ['accuracy']
-#     epochs = 10
-#     class_names = ['dog', 'cat']
-#     training_labels = {'dog': 0, 'cat': 1}
-
-#     img_train = load_files(classes=class_names, num_img=1000,
-#                         random_state=-1)
-#     X = []
-#     y = []
-#     for label, img_files in img_train.items():
-#         X += [center(cv2.resize(
-#             cv2.imread(img_file),
-#             (img_size, img_size),
-#             interpolation=cv2.INTER_LINEAR)) for img_file in img_files]
-#         y += [training_labels[label] for _ in range(len(img_files))]
-#     X = np.array(X)
-#     y = np.array(y)
-#     X_train, X_test, y_train, y_test = train_test_split(
-#         X, y, test_size=0.2, random_state=1)
-
-#     if training:
-#         X_train, X_val, y_train, y_val = train_test_split(
-#             X_train / 255, y_train, test_size=0.25, random_state=2)
-
-#         model = BinarySmallModel()
-#         model.compile(optimizer=optimizer,
-#                       loss=tf.keras.losses.SparseCategoricalCrossentropy(
-#                           from_logits=True),
-#                       metrics=metrics)
-#         model.fit(x=X_train, y=y_train, epochs=epochs,
-#                   validation_data=(X_val, y_val))
-#         model.save(model_name)
-
-#     model = models.load_model(model_name)
-#     explainer = lime_image.LimeImageExplainer()
-
-#     for img_test in X_test[:10]:
-#         score = tf.nn.softmax(model.predict(np.array([img_test]) / 255))
-#         print(
-#             "This image most likely belongs to {} with a {:.2f} percent confidence."
-#             .format(class_names[np.argmax(score)], 100 * np.max(score))
-#         )
-
-#         explanation = explainer.explain_instance(
-#             image=np.array(img_test, dtype=np.double),
-#             classifier_fn=model.predict,
-#             top_labels=1,
-#             hide_color=0,
-#             num_features=20,
-#             num_samples=500)
-
-#         temp, mask = explanation.get_image_and_mask(
-#             explanation.top_labels[0],
-#             positive_only=True,
-#             num_features=5,
-#             hide_rest=False)
-#         plt.figure()
-#         plt.imshow(mark_boundaries(temp / (255 * 2) + 0.4, mask))
-
-#         # temp, mask = explanation.get_image_and_mask(
-#         #     explanation.top_labels[0],
-#         #     positive_only=False,
-#         #     num_features=10,
-#         #     hide_rest=False)
-#         # plt.figure()
-#         # plt.imshow(mark_boundaries(temp / (255 * 2) + 0.4, mask))
-
-#         # temp, mask = explanation.get_image_and_mask(
-#         #     explanation.top_labels[0],
-#         #     positive_only=False, num_features=1000,
-#         #     hide_rest=False,
-#         #     min_weight=0.1)
-#         # plt.figure()
-#         # plt.imshow(mark_boundaries(temp / (255 * 2) + 0.4, mask))
-#         plt.show()
+temp, mask = explanation.get_image_and_mask(
+    explanation.top_labels[0], positive_only=False, num_features=1000, hide_rest=False, min_weight=0.1)
+plt.figure()
+plt.imshow(mark_boundaries(temp / (255 * 2) + 0.4, mask))
