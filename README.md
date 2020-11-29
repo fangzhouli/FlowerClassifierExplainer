@@ -19,9 +19,10 @@ You are welcome to try out different models. If you want to get the exact same o
 
 ## How to use
 
-
-
 ```console
 python cnn_model_training.py  # Purposely generate a bad model.
 python generate_figures.py
 ```
+## References
+
+- [1] Marco Tulio Ribeiro, et al. 2016. "Why Should I Trust You?": Explaining the Predictions of Any Classifier.
