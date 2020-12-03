@@ -4,9 +4,9 @@
 
 This project investigates LIME [1], model explanation method, with different explainers. We implemented MyLIME to test the LIME with the logistic regression explainer and the decision tree explainer on the flower classification model. Our experiment result shows that the LIME with tree explainer outperforms the LIME with the linear explainer and the logistic explainer.
 
-## How to start
+![dandelion](./fig/dandelion.png)
 
-### Installation
+## How to use
 
 In order to reproduce the result, you need to git clone two repositories: This repository, and [MyLime](https://github.com/fangzhouli/mylime) repository. After cloning, perform the installation as below:
 ```console
@@ -15,9 +15,7 @@ pip install ./ECS289G3_DeepLearning  # This will overwrite original LIME if
 pip install ./mylime
 ```
 
-You are welcome to try out different models. If you want to get the exact same outcome as we have, please follow our report.
-
-## How to use
+You are welcome to try out different models. If you want to get the exact same outcome as we have, please follow our [report](./report.pdf).
 
 ```console
 cd flower_lime
