@@ -1,4 +1,4 @@
-# ECS289 Deep Learning Project: Investigation of Interpretability of DifferentLocal Explainers for Deep Neural Network
+# ECS289 Deep Learning Project: Investigation of Interpretability of Different Local Explainers for Deep Neural Network
 
 ## Introduction
 
@@ -27,3 +27,9 @@ python generate_figures.py
 ## References
 
 - [1] Marco Tulio Ribeiro, et al. 2016. "Why Should I Trust You?": Explaining the Predictions of Any Classifier.
+
+## Contributers
+
+Thanks for the contribution of:
+- [Chengyang Wang](https://github.com/cyywang-git)
+- [Xiawei Wang](https://github.com/Xiawei29)
